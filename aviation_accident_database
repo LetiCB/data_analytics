@@ -1,0 +1,57 @@
+# Scrape data from PlaneCrashInfo.com and convert it to a CSV file.
+
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+import random 
+
+# Aviation Database URL
+url = "http://www.planecrashinfo.com/database.htm"
+
+data  = requests.get(url).text
+soup = BeautifulSoup(data,"html.parser") 
+urlbase = "http://www.planecrashinfo.com"
+links = []
+for link in soup.find_all('a'): 
+    links.append(urlbase + link.get('href')) 
+links = links[:-1]
+links[9] = 'http://www.planecrashinfo.com/1929/1929.htm'
+
+def get_details(link):
+    data  = requests.get(link).text
+    soup = BeautifulSoup(data,"html.parser")
+    table = soup.find_all('table')
+    df = pd.read_html(str(table))[0]
+    df.rename(columns=df.iloc[0]).drop(df.index[0])
+    dictaccident = dict(zip(df.iloc[:, 0] , df.iloc[:, 1]))
+    del dictaccident["-"]
+    list_details = []
+    for value in dictaccident.values():
+        list_details.append(value)
+    return list_details
+    
+def find_accidents(year):
+    data  = requests.get(year).text
+    soup = BeautifulSoup(data,"html.parser")
+    urlparte = "http://www.planecrashinfo.com/"
+    title = soup.title.text
+    crashlink = [tag.find("a")["href"] for tag in soup.select("td:has(a)")]
+    fulllist = []
+    for link in crashlink:
+        fulllink = urlparte + title + "/" + link
+        fulllist.append(get_details(fulllink))
+    return fulllist   
+    
+def get_crash_data(links_anios):
+    data = []
+    for year in links_years:
+        for list in find_accidents(year):
+            data.append(list)
+    df = pd.DataFrame(data, columns = ['Date', 'Time', 'Location', 'Airline/Op', 'Flight', 'Route', 'AC Type', 'Reg', 'cn/ln', 'Aboard', 'Fatalities', 'Ground', 'Summary']) 
+    return df
+    
+get_crash_data(links).to_csv('crashfulldb.csv')
+
+
+
+
