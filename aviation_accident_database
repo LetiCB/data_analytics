@@ -42,7 +42,7 @@ def find_accidents(year):
         fulllist.append(get_details(fulllink))
     return fulllist   
     
-def get_crash_data(links_anios):
+def get_crash_data(links_years):
     data = []
     for year in links_years:
         for list in find_accidents(year):
